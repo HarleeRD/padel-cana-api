@@ -1,5 +1,6 @@
 import { BadRequestException, Body, Controller, Get, Post, Query, Req, UseGuards } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/jwt.guard';
 import { Roles } from '../auth/roles.decorator';
 import { RolesGuard } from '../auth/roles.guard';
@@ -10,6 +11,8 @@ type RequestWithUser = Request & {
   user?: { userId?: string; role?: string; clubId?: string };
 };
 
+@ApiTags('Bookings')
+@ApiBearerAuth('access-token')
 @Controller('bookings')
 export class BookingsController {
   constructor(private readonly bookingsService: BookingsService) {}
