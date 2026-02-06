@@ -1,0 +1,93 @@
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  PLAYER
+  CLUB_ADMIN
+  STAFF
+}
+
+enum BookingStatus {
+  PENDING_PAYMENT
+  CONFIRMED
+  CANCELLED
+}
+
+enum PaymentStatus {
+  REQUIRES_PAYMENT
+  PROCESSING
+  SUCCEEDED
+  FAILED
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  name      String
+  passwordHash String? @map("password_hash")
+  role      Role     @default(PLAYER)
+  clubId    String?
+  language  String   @default("ES")
+  createdAt DateTime @default(now())
+
+  club      Club?    @relation(fields: [clubId], references: [id])
+  bookings  Booking[]
+}
+
+model Club {
+  id        String   @id @default(uuid())
+  name      String
+  location  String
+  isResort  Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  users     User[]
+  courts    Court[]
+}
+
+model Court {
+  id        String   @id @default(uuid())
+  name      String
+  clubId    String
+  type      String   @default("outdoor") // MVP simple
+  price     Int      @default(0)          // en centavos
+  createdAt DateTime @default(now())
+
+  club      Club     @relation(fields: [clubId], references: [id])
+  bookings  Booking[]
+}
+
+model Booking {
+  id        String        @id @default(uuid())
+  userId    String
+  courtId   String
+  startTime DateTime
+  endTime   DateTime
+  status    BookingStatus @default(PENDING_PAYMENT)
+  expiresAt DateTime?
+  createdAt DateTime      @default(now())
+
+  user      User   @relation(fields: [userId], references: [id])
+  court     Court  @relation(fields: [courtId], references: [id])
+
+  payment   Payment?
+}
+
+model Payment {
+  id            String        @id @default(uuid())
+  bookingId     String        @unique
+  amount        Int
+  currency      String        @default("usd")
+  status        PaymentStatus @default(REQUIRES_PAYMENT)
+  stripeIntentId String?      @unique
+  createdAt     DateTime      @default(now())
+
+  booking       Booking       @relation(fields: [bookingId], references: [id])
+}
