@@ -1,7 +1,9 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
+import { DateTime } from 'luxon';
 import { PrismaService } from '../prisma/prisma.service';
 import { RedisService } from '../redis/redis.service';
 import { CreateBookingDto } from './dto/create-booking.dto';
+import { normalizeToYMD } from '../common/date';
 
 @Injectable()
 export class BookingsService {
@@ -11,16 +13,15 @@ export class BookingsService {
   ) {}
 
   async create(userId: string, dto: CreateBookingDto) {
-    const startTime = new Date(dto.startTime);
-    const endTime = new Date(dto.endTime);
+    const start = DateTime.fromISO(dto.startTime, { setZone: true }).toUTC();
+    const end = DateTime.fromISO(dto.endTime, { setZone: true }).toUTC();
 
-    if (Number.isNaN(startTime.getTime()) || Number.isNaN(endTime.getTime())) {
+    if (!start.isValid || !end.isValid || end <= start) {
       throw new BadRequestException('Invalid time range');
     }
 
-    if (startTime >= endTime) {
-      throw new BadRequestException('Invalid time range');
-    }
+    const startTime = start.toJSDate();
+    const endTime = end.toJSDate();
 
     const lockKey = `lock:court:${dto.courtId}:${startTime.toISOString()}`;
     const locked = await this.redis.acquireLock(lockKey, 30);
@@ -46,16 +47,13 @@ export class BookingsService {
         throw new BadRequestException('Time slot already booked');
       }
 
-      const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
-
       return await this.prisma.booking.create({
         data: {
           userId,
           courtId: dto.courtId,
           startTime,
           endTime,
-          status: 'PENDING_PAYMENT',
-          expiresAt,
+          status: 'CONFIRMED',
         },
       });
     } finally {
@@ -72,7 +70,16 @@ export class BookingsService {
   }
 
   findByClubAndDate(clubId: string, date: string) {
-    const dayStart = new Date(`${date}T00:00:00.000Z`);
+    let normalizedDate: string;
+    try {
+      normalizedDate = normalizeToYMD(date);
+    } catch {
+      throw new BadRequestException(
+        'Invalid date. Expected YYYY-MM-DD, ISO timestamp, or unix timestamp (ms)',
+      );
+    }
+
+    const dayStart = new Date(`${normalizedDate}T00:00:00.000Z`);
     const dayEnd = new Date(dayStart);
     dayEnd.setUTCDate(dayEnd.getUTCDate() + 1);
 

@@ -6,7 +6,15 @@ import { PrismaService } from '../prisma/prisma.service';
 export class AvailabilityService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async getAvailability(clubId: string, date: string) {
+  async getAvailability(
+    clubIdOrParams: string | { clubId: string; date: string },
+    dateParam?: string,
+  ) {
+    const clubId =
+      typeof clubIdOrParams === 'string' ? clubIdOrParams : clubIdOrParams.clubId;
+    const date =
+      typeof clubIdOrParams === 'string' ? dateParam : clubIdOrParams.date;
+
     if (!clubId) {
       throw new BadRequestException('clubId is required');
     }

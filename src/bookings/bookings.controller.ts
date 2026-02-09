@@ -21,7 +21,7 @@ export class BookingsController {
   @((Throttle as any)(10, 60))
   @Post()
   create(@Req() req: RequestWithUser, @Body() dto: CreateBookingDto) {
-    const userId = req.user?.userId;
+    const userId = req.user?.userId ?? (req.user as any)?.id;
     if (!userId) {
       throw new BadRequestException('userId is required');
     }

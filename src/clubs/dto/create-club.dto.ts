@@ -12,4 +12,8 @@ export class CreateClubDto {
   @IsBoolean()
   @IsOptional()
   isResort?: boolean;
+
+  @IsString()
+  @IsOptional()
+  timezone?: string;
 }

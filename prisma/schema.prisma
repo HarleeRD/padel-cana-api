@@ -6,18 +6,23 @@ generator client {
 
 datasource db {
   provider = "postgresql"
+  schemas  = ["app"]
 }
 
 enum Role {
   PLAYER
   CLUB_ADMIN
   STAFF
+
+  @@schema("app")
 }
 
 enum BookingStatus {
   PENDING_PAYMENT
   CONFIRMED
   CANCELLED
+
+  @@schema("app")
 }
 
 enum PaymentStatus {
@@ -25,6 +30,8 @@ enum PaymentStatus {
   PROCESSING
   SUCCEEDED
   FAILED
+
+  @@schema("app")
 }
 
 model User {
@@ -39,6 +46,8 @@ model User {
 
   club      Club?    @relation(fields: [clubId], references: [id])
   bookings  Booking[]
+
+  @@schema("app")
 }
 
 model Club {
@@ -46,10 +55,13 @@ model Club {
   name      String
   location  String
   isResort  Boolean  @default(false)
+  timezone  String   @default("America/Santo_Domingo")
   createdAt DateTime @default(now())
 
   users     User[]
   courts    Court[]
+
+  @@schema("app")
 }
 
 model Court {
@@ -62,6 +74,8 @@ model Court {
 
   club      Club     @relation(fields: [clubId], references: [id])
   bookings  Booking[]
+
+  @@schema("app")
 }
 
 model Booking {
@@ -70,7 +84,7 @@ model Booking {
   courtId   String
   startTime DateTime
   endTime   DateTime
-  status    BookingStatus @default(PENDING_PAYMENT)
+  status    BookingStatus @default(CONFIRMED)
   expiresAt DateTime?
   createdAt DateTime      @default(now())
 
@@ -78,6 +92,8 @@ model Booking {
   court     Court  @relation(fields: [courtId], references: [id])
 
   payment   Payment?
+
+  @@schema("app")
 }
 
 model Payment {
@@ -90,4 +106,6 @@ model Payment {
   createdAt     DateTime      @default(now())
 
   booking       Booking       @relation(fields: [bookingId], references: [id])
+
+  @@schema("app")
 }

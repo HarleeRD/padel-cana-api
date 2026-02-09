@@ -13,12 +13,20 @@ if (!databaseUrl) {
 const directUrl = process.env["DIRECT_URL"];
 const isPrismaPostgres = databaseUrl.startsWith("prisma+postgres://");
 
+const cliDatasourceUrl = directUrl ?? databaseUrl;
+
 if (isPrismaPostgres) {
   if (!directUrl) {
     throw new Error(
       "DATABASE_URL uses prisma+postgres://. Set DIRECT_URL to a real postgres connection string (postgresql://...) for Prisma CLI (generate/migrate).",
     );
   }
+  if (!directUrl.startsWith("postgresql://") && !directUrl.startsWith("postgres://")) {
+    throw new Error(
+      `DIRECT_URL must be a postgres connection string (postgresql://...). Got: ${directUrl.split("://")[0]}://...`,
+    );
+  }
+} else if (directUrl) {
   if (!directUrl.startsWith("postgresql://") && !directUrl.startsWith("postgres://")) {
     throw new Error(
       `DIRECT_URL must be a postgres connection string (postgresql://...). Got: ${directUrl.split("://")[0]}://...`,
@@ -31,7 +39,7 @@ if (isPrismaPostgres) {
 }
 
 try {
-  const parsed = new URL(isPrismaPostgres ? directUrl! : databaseUrl);
+  const parsed = new URL(cliDatasourceUrl);
   if (
     parsed.hostname === "localhost" &&
     (parsed.port === "51213" || parsed.port === "51214")
@@ -48,8 +56,9 @@ export default defineConfig({
   schema: "prisma/schema.prisma",
   migrations: {
     path: "prisma/migrations",
+    seed: "ts-node --esm prisma/seed.ts",
   },
   datasource: {
-    url: isPrismaPostgres ? directUrl! : databaseUrl,
+    url: cliDatasourceUrl,
   },
 });
